@@ -1,0 +1,600 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title></title>
+  <style>
+    html, body {
+      padding: 0;
+      margin: 0;
+      background-image: url("https://upload.wikimedia.org/wikipedia/commons/0/04/Sun_in_the_sky.jpg");
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      text-align: center;
+      z-index: 100;
+      display:block;
+    }
+    button{   
+      background-color: #4CAF50; /* Green */
+      border: none;
+      color: white;
+      padding: 15px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: rgb(13, 94, 48); /* Green */
+    }
+    .wrapper {
+        text-align: center;
+    }
+  </style>
+</head>
+
+<!-- ===================================== body start ========================================== -->
+<body>
+  <div id="container"></div>
+  <script src="third_party/three.min.js"></script>
+  <script src="third_party/watch.js" type="text/javascript"></script>
+  <script type='text/javascript' src='third_party/tween.js'></script>
+  <script>
+    // ===================== Explosion.
+    var movementSpeed = 80;
+    var totalObjects = 1000;
+    var objectSize = 10;
+    var sizeRandomness = 4000;
+    var colors = [0xFF0FFF, 0xCCFF00, 0xFF000F, 0x996600, 0xFFFFFF];
+    
+    var dirs = [];
+    var parts = [];
+
+    // ================= Set the scene size.
+    const WIDTH = window.innerWidth;
+    const HEIGHT = window.innerHeight;
+
+    // ================= Set some camera attributes.
+    const VIEW_ANGLE = 75;
+    const ASPECT = WIDTH / HEIGHT;
+    const NEAR = 0.1;
+    const FAR = 1000;
+
+    // ================= Get the DOM element to attach to
+    const container =
+        document.querySelector('#container');
+
+    // ================= Create a WebGL renderer, camera and a scene
+    const renderer = new THREE.WebGLRenderer();
+    const camera =
+        new THREE.PerspectiveCamera(
+            VIEW_ANGLE,
+            ASPECT,
+            NEAR,
+            FAR
+        );
+
+    var ex2 = {
+      level: 1
+    };
+
+    // =================== add sky background
+    var skyGeo = new THREE.SphereGeometry(180 , 100, 110);
+      var loader  = new THREE.TextureLoader(),
+      //https://upload.wikimedia.org/wikipedia/commons/8/8b/Fractal_terrain_texture.jpg
+          texture = loader.load( "https://upload.wikimedia.org/wikipedia/commons/0/04/Sun_in_the_sky.jpg" );
+      
+      var material = new THREE.MeshPhongMaterial({ 
+          map: texture,
+      });
+
+
+    var sky = new THREE.Mesh(skyGeo, material);
+    sky.material.side = THREE.BackSide;
+
+    var floorloader  = new THREE.TextureLoader();
+
+  // var texture = THREE.ImageUtils.loadTexture('http://miami-water.com/blog/wp-content/uploads/2012/10/aniwater-1.gif');
+      var floortexture = loader.load( "https://upload.wikimedia.org/wikipedia/commons/3/38/Water_texture_1390080_Nevit.jpg" );
+
+    // =================== create the sphere's material
+    var sphereloader  = new THREE.TextureLoader(),
+    //https://upload.wikimedia.org/wikipedia/commons/8/8b/Fractal_terrain_texture.jpg
+        sphtexture = loader.load( "https://upload.wikimedia.org/wikipedia/commons/8/81/%C3%89perlecques_Blockhaus_V2.JPG" );
+
+    const sphereMaterial = new THREE.MeshBasicMaterial(
+        {
+          
+          map: sphtexture
+        });
+
+    
+    const scene = new THREE.Scene();
+    scene.add(sky);
+    var audio = document.createElement('audio');
+    var source = document.createElement('source');
+    source.src = './sounds/start.mp3';
+
+    function ExplodeAnimation(x,y)
+    {
+      var geometry = new THREE.Geometry();
+      
+      for (i = 0; i < totalObjects; i ++) 
+      { 
+        var vertex = new THREE.Vector3();
+        vertex.x = x;
+        vertex.y = y;
+        vertex.z = 0;
+      
+        geometry.vertices.push( vertex );
+        dirs.push({x:(Math.random() * movementSpeed)-(movementSpeed/2),y:(Math.random() * movementSpeed)-(movementSpeed/2),z:(Math.random() * movementSpeed)-(movementSpeed/2)});
+      }
+      var material = new THREE.ParticleBasicMaterial( { size: objectSize,  color: colors[Math.round(Math.random() * colors.length)] });
+      var particles = new THREE.ParticleSystem( geometry, material );
+      
+      this.object = particles;
+      this.status = true;
+      
+      this.xDir = (Math.random() * movementSpeed)-(movementSpeed/2);
+      this.yDir = (Math.random() * movementSpeed)-(movementSpeed/2);
+      this.zDir = (Math.random() * movementSpeed)-(movementSpeed/2);
+      
+      scene.add( this.object  ); 
+      
+      this.update = function(){
+        if (this.status == true){
+          var pCount = totalObjects;
+          while(pCount--) {
+            var particle =  this.object.geometry.vertices[pCount]
+            particle.y += dirs[pCount].y;
+            particle.x += dirs[pCount].x;
+            particle.z += dirs[pCount].z;
+          }
+          this.object.geometry.verticesNeedUpdate = true;
+        }
+      }
+}
+
+    function nextLevel(camera, container){
+      
+      audio.appendChild(source);
+      audio.play();
+
+      // =================== Add the camera to the scene.
+      scene.add(camera);
+
+      // =================== Start the renderer.
+      renderer.setSize(WIDTH, HEIGHT);
+
+      // =================== Attach the renderer-suppliedDOM element.
+      container.appendChild(renderer.domElement);
+
+      // =================== create a point light and set its position.
+      const pointLight = new THREE.PointLight(0xFFFFFF);
+
+        pointLight.position.x = 10;
+        pointLight.position.y = 100;
+        pointLight.position.z = 100;
+
+      // =================== add to the scene
+      scene.add(pointLight);
+
+      // ==================== Create a new mesh with sphere geometry - we will cover the sphereMaterial next!
+      var x =18;
+      var spheres = [];
+
+      for(var i=0; i<10;i++){
+        const sphere = new THREE.Mesh(new THREE.SphereGeometry( 0.2, 32, 16, 0, Math.PI), sphereMaterial);
+        sphere.position.y = 18;
+        sphere.position.x = x;
+        sphere.position.z = -10;
+        sphere.name = "attacks";
+        x-= (Math.random()*8);
+        spheres.push(sphere);
+        scene.add(sphere);
+      }
+      
+      
+      // ===================== Finally, add the spaceship to the scene.
+      var shiploader  = new THREE.TextureLoader(),
+      //https://upload.wikimedia.org/wikipedia/commons/8/8b/Fractal_terrain_texture.jpg
+          shiptexture = shiploader.load( "https://upload.wikimedia.org/wikipedia/commons/d/dc/CK-12_spaceship.png" );
+
+      const shipMaterial = new THREE.MeshBasicMaterial(
+          {
+            map: shiptexture
+          });
+
+      var geometry = new THREE.SphereGeometry( 0.5, 32, 32, 0, Math.PI );
+      var spaceship = new THREE.Mesh( geometry, shipMaterial );
+      spaceship.position.y = 20;
+      spaceship.position.x = Math.floor(Math.random() * 15) -10;
+      spaceship.position.z = -10;
+      scene.add( spaceship );
+      camera.position.z = 10;
+
+      var geo = new THREE.PlaneBufferGeometry(100, 30,10,10);
+      
+      var mat = new THREE.MeshBasicMaterial({ color: 0x808080, wireframe: true });  
+
+  //     var loader  = new THREE.TextureLoader();
+
+  // // var texture = THREE.ImageUtils.loadTexture('http://miami-water.com/blog/wp-content/uploads/2012/10/aniwater-1.gif');
+  //     var texture = loader.load( "https://upload.wikimedia.org/wikipedia/commons/3/38/Water_texture_1390080_Nevit.jpg" );
+      
+      var material = new THREE.MeshPhongMaterial({ 
+          map: floortexture,
+      });
+
+      var plane = new THREE.Mesh(geo, material);
+
+      // Adding trees/cities
+      var x = -20;
+      var trees = [];
+      var loader  = new THREE.TextureLoader();
+
+      var buildtexture = loader.load( "https://upload.wikimedia.org/wikipedia/commons/6/67/StoneWall-8722.jpg" );
+      var ascending = [];
+
+      var loaderFire  = new THREE.TextureLoader(),
+        textureFire = loaderFire.load( "https://upload.wikimedia.org/wikipedia/commons/4/4e/Stunt_Pyrotechnics_Luc_Viatour.jpg" );
+      
+      var fireMaterial = new THREE.MeshBasicMaterial(
+          {
+            map: textureFire
+          });
+
+      for(var i =0; i<11; i++){
+
+        var trunk = new THREE.Mesh(
+            new THREE.BoxGeometry( 2, 6, 2 ),
+            new THREE.MeshLambertMaterial({
+                map: buildtexture
+            })
+        );
+        trunk.position.y = 0.5;  // move base up to origin
+        
+        if(i == 5){
+          trunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(2,2,5,16,3),
+            new THREE.MeshPhongMaterial({
+                map: buildtexture,
+                specular: 0x002000,
+                shininess: 5
+            })
+          );
+        }
+
+        x+=3.5;
+        trunk.position.set(x,10,0);
+        trunk.scale.set(0.7,0.7,0.7);
+        trunk.rotation.x=Math.PI/2;
+        trees.push(trunk);
+        plane.add( trunk );
+
+        const upsphere = new THREE.Mesh(new THREE.SphereGeometry( 0.2, 32, 16, 0, Math.PI), fireMaterial);
+        upsphere.position.y = -10;
+        upsphere.position.x = 0;
+        upsphere.position.z = -10;
+        ascending.push(upsphere);
+        scene.add(upsphere);
+        
+      }
+
+      plane.rotation.x-= Math.PI/2;
+      plane.position.y-=10;
+      scene.add(plane);
+
+      // Next Level
+      var game = document.createElement('div');
+          game.id = 'first';
+          game.style.position = 'fixed';
+          game.style.width = 500;
+          game.style.marginLeft = '500px';
+          game.style.height = 100;
+          game.style.fontSize = '100px';
+          game.innerHTML = "Game Over";
+          game.style.top= 100 + 'px';
+          
+          game.style.display = "none";
+          document.body.appendChild(game);
+
+      var text2 = document.createElement('div');
+      text2.style.position = 'absolute';
+      text2.style.width = 20;
+      text2.style.height = 20;
+      text2.style.backgroundColor = "red";
+      text2.innerHTML = "Score:"+ plane.children.length * 100;
+      text2.style.top= 10 + 'px';
+      document.body.appendChild(text2);
+
+
+      // =========== Animation declarations
+      var fall = 0;
+      var i = 0;
+
+      var upmissile=-1;
+      var nextlevel = [];
+      var missiles = ascending.length;
+
+      for(var done = 0; done<spheres.length; done++){
+        nextlevel[done] = false;
+      }
+
+      function update () {
+        // Draw!
+        var pCount = parts.length;
+          while(pCount--) {
+            parts[pCount].update();
+          }
+          
+        renderer.render(scene, camera);
+        TWEEN.update();
+        // Schedule the next frame.
+        requestAnimationFrame(update);
+        
+        fall++;
+        if(fall>100 && scene.children.indexOf(spaceship) != -1){
+          var random = Math.random()/5;
+          spaceship.position.y -= random * ex2.level;
+          
+          spaceship.position.x += random * ex2.level;
+        }
+        
+        if(fall>200 && scene.children.indexOf(spaceship)!= -1){
+          var random = Math.random()/3;
+          spaceship.position.y -= random*ex2.level;
+          spaceship.position.x -= random*ex2.level;
+        }
+        if(fall>(Math.random()*100 + 20) && scene.children.indexOf(spheres[0])!= -1){
+          spheres[0].position.y -= 0.1 * ex2.level;
+          spheres[0].position.x -= 0.09 * ex2.level;
+        }
+        
+        if(fall> (Math.random()*100 + 70) && scene.children.indexOf(spheres[1])!= -1){
+          spheres[1].position.y -= 0.08 * ex2.level;
+          spheres[1].position.x -= 0.06 * ex2.level;
+        }
+        
+
+        if(fall > (Math.random()*100 + 100) && scene.children.indexOf(spheres[2])!= -1){
+          spheres[2].position.y -= 0.07 * ex2.level;
+          spheres[2].position.x -= 0.04 * ex2.level;
+        }
+        
+
+        if(fall > (Math.random()*100 + 140) && scene.children.indexOf(spheres[3])!= -1){
+          spheres[3].position.y -= 0.1 * ex2.level;
+          spheres[3].position.x -= 0.05;
+        }
+        
+
+        if(fall > (Math.random()*100 + 180) && scene.children.indexOf(spheres[4])!= -1){
+          spheres[4].position.y -= 0.11 * ex2.level;
+        }
+        
+        if(fall > (Math.random()*100 + 60) && scene.children.indexOf(spheres[5])!= -1){
+          spheres[5].position.y -= 0.05 * ex2.level;
+          spheres[5].position.x += 0.03 * ex2.level;
+        }
+
+        if(fall > (Math.random()*100 + 270) && scene.children.indexOf(spheres[6])!= -1){
+          spheres[6].position.y -= 0.11 * ex2.level;
+          spheres[6].position.x += 0.04;
+        }
+
+        if(fall > (Math.random()*100 + 50) && scene.children.indexOf(spheres[7])!= -1){
+          spheres[7].position.y -= 0.08 * ex2.level;
+          spheres[7].position.x += 0.01 * ex2.level;
+        }
+
+        if(fall > (Math.random()*100 + 300) && scene.children.indexOf(spheres[8])!= -1){
+          spheres[8].position.y -= 0.1 * ex2.level;
+          spheres[8].position.x += 0.03 * ex2.level;
+        }
+
+        if(fall > (Math.random()*100 + 30) && scene.children.indexOf(spheres[9])!= -1){
+          spheres[9].position.y -= 0.12 * ex2.level;
+          spheres[9].position.x += 0.06 * ex2.level;
+        }
+
+        for( var k = 0; k<ascending.length; k++){
+          for(var m=0; m<spheres.length; m++){
+              var distance = Math.sqrt((ascending[k].position.x - spheres[m].position.x) * (ascending[k].position.x - spheres[m].position.x) +
+              (ascending[k].position.y - spheres[m].position.y) * (ascending[k].position.y - spheres[m].position.y) +
+              (ascending[k].position.z - spheres[m].position.z) * (ascending[k].position.z - spheres[m].position.z));
+                            
+              if(distance < (ascending[k].geometry.parameters.radius + spheres[m].geometry.parameters.radius) && (scene.children.indexOf(ascending[k]) != -1)){
+                scene.remove(spheres[m]);
+              }
+          }
+          var distance = Math.sqrt((ascending[k].position.x - spaceship.position.x) * (ascending[k].position.x - spaceship.position.x) +
+          (ascending[k].position.y - spaceship.position.y) * (ascending[k].position.y - spaceship.position.y) +
+          (ascending[k].position.z - spaceship.position.z) * (ascending[k].position.z - spaceship.position.z));
+                            
+              if(distance < (ascending[k].geometry.parameters.radius + spaceship.geometry.parameters.radius) && (scene.children.indexOf(ascending[k]) != -1)){
+                scene.remove(spaceship);
+              }
+        }
+
+        for( var l = 0; l<spheres.length; l++){
+          for (var vertex = 0; vertex < spheres[l].geometry.vertices.length; vertex++)
+          {       
+            var newray = new THREE.Raycaster( spheres[l].position, spheres[l].geometry.vertices[vertex] );
+            var results = newray.intersectObjects( trees );
+                
+            if ( results.length > 0 ) {
+              
+              plane.remove(results[0].object);
+              scene.remove(spheres[l]);
+              results.pop();
+              
+              text2.innerHTML = "Score:"+ plane.children.length * 100;
+                
+            }
+              
+              
+          }
+
+        }
+        for(var ypos= 0; ypos<spheres.length; ypos++){
+          if(spheres[ypos].position.y < -15){
+            scene.remove(spheres[ypos]);
+          }
+        }
+        var object = scene.getObjectByName( "attacks" );
+        
+        if(object === undefined){
+          game.style.display = "block";
+          ex2.level = 2;
+        }
+
+        for (var vert = 0; vert < spaceship.geometry.vertices.length; vert++)
+          {       
+            var nray = new THREE.Raycaster( spaceship.position, spaceship.geometry.vertices[vert] );
+            var res = nray.intersectObjects( trees );
+            
+            if ( res.length > 0 ) {
+              plane.remove(res[0].object);
+              scene.remove(spaceship);
+              // parts.push(new ExplodeAnimation(spaceship.position.x, spaceship.position.y));
+                    
+              res = [];
+              text2.innerHTML = "Score:"+ plane.children.length * 100;  
+            }
+              
+              
+          }
+        
+      }
+
+      // Schedule the first frame.
+      requestAnimationFrame(update);
+
+      var mouse = new THREE.Vector2();
+      
+      var loaderFire  = new THREE.TextureLoader(),
+          textureFire = loaderFire.load( "https://upload.wikimedia.org/wikipedia/commons/2/2a/FIRE_01.JPG" );
+      
+      document.addEventListener('click', onMouseClick, false);
+      fireMaterial = new THREE.MeshBasicMaterial(
+          {
+            map: textureFire
+          });
+      
+      
+      var attacks = [];
+      var text1 = document.createElement('div');
+      text1.style.position = 'absolute';
+      text1.style.width = 20;
+      text1.style.height = 20;
+      text1.style.backgroundColor = "yellow";
+      text1.innerHTML = "Missiles left:"+ missiles;
+      text1.style.top= 30 + 'px';
+      document.body.appendChild(text1);
+
+      function onMouseClick(event) {
+          
+          // Mouse click
+          if(upmissile<ascending.length-1){
+            upmissile++;
+            missiles--;
+            text1.innerHTML = "Missiles left:"+ missiles;
+            const sph = new THREE.Mesh(new THREE.SphereGeometry( 0.7, 32, 16, 0, Math.PI), fireMaterial);
+
+            event.preventDefault();
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Shooting at target
+            var vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
+            vector.unproject(camera);
+            var dir = vector.sub(camera.position).normalize();
+            var distance = -camera.position.z / dir.z;
+            var pos = camera.position.clone().add(dir.multiplyScalar(distance));
+            sph.position.copy(pos);
+            sph.position.x *=2;
+            sph.position.y *=2;
+            sph.position.z =-10;
+
+            var position = { x : ascending[upmissile].position.x, y: ascending[upmissile].position.y };
+            var target = { x : sph.position.x, y: sph.position.y };
+            var tween = new TWEEN.Tween(position).to(target, 100);
+
+            tween.onUpdate(function(){
+                ascending[upmissile].position.x= position.x;
+                ascending[upmissile].position.y= position.y;
+                if(position.x === sph.position.x){
+                  // event.preventDefault();
+                  
+                  var audio = document.createElement('audio');
+                  var source = document.createElement('source');
+                  source.src = './sounds/explosion.mp3';
+                  audio.appendChild(source);
+                  audio.play();
+                  ascending[upmissile].scale.x *=2;
+                  ascending[upmissile].scale.y *=2;
+                  var index = ascending.indexOf(ascending[upmissile]);
+                    
+                  var launcher = ascending[upmissile];
+                  
+                  setTimeout(function() {
+                    scene.remove(launcher);
+                    parts.push(new ExplodeAnimation(position.x, position.y));
+                    var audio = document.createElement('audio');
+                    var source = document.createElement('source');
+                    source.src = './sounds/afterexplode.mp3';
+                    audio.appendChild(source);
+                    audio.play();
+                  },2000);
+                  
+                }
+            });
+            tween.start();
+          }
+      };
+    }
+    watch(ex2, ["level"], function(){
+      setTimeout(function() {
+        location.reload(true);
+      },5000);
+      
+    });
+
+    // Next Level
+    var game = document.createElement('div');
+          game.id = 'first';
+          game.className ='wrapper';
+          game.style.position = 'relative';
+          game.style.width = 500;
+          // game.style.marginLeft = '500px';
+          game.style.height = 100;
+          game.style.fontSize = '100px';
+          game.innerHTML = "Missile Command";
+          game.style.top= 200 + 'px';
+          
+          game.style.display = "block";
+
+          var button = document.createElement('div');
+          button.id = "start"
+          var btn = document.createElement("BUTTON");
+          button.className = "wrapper";
+          var t = document.createTextNode("Play");       // Create a text node
+          btn.appendChild(t); 
+          button.appendChild(btn);
+          game.appendChild(button);    
+          document.body.appendChild(game);
+          button.onclick = function(){
+            setTimeout(function() {
+              nextLevel(camera, container);
+              document.getElementById("start").remove();
+              document.getElementById("first").remove();
+            },200);
+          };
+  </script>
+</body>
+</html>
